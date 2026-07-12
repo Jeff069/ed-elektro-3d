@@ -20,6 +20,10 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.05;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
+// Real soft shadow maps (three.js docs: PCFSoftShadowMap is the recommended
+// balance of quality/perf for PBR scenes) — replaces the old fake shadow blob.
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 const scene = new THREE.Scene();
 scene.fog = new THREE.Fog(0x0b0d10, 9, 24);
@@ -35,6 +39,16 @@ const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100);
 scene.add(new THREE.HemisphereLight(0x3a4550, 0x0b0d10, 0.9));
 const key = new THREE.DirectionalLight(0xd97a3f, 1.0);
 key.position.set(5, 8, 4);
+key.castShadow = true;
+key.shadow.mapSize.set(1024, 1024);
+key.shadow.camera.left = -6;
+key.shadow.camera.right = 6;
+key.shadow.camera.top = 6;
+key.shadow.camera.bottom = -6;
+key.shadow.camera.near = 1;
+key.shadow.camera.far = 20;
+key.shadow.radius = 3;
+key.shadow.bias = -0.0015;
 scene.add(key);
 const fill = new THREE.DirectionalLight(0x5fa8bd, 0.4);
 fill.position.set(-5, 3, -3);
@@ -108,6 +122,8 @@ const house = new THREE.Group();
 
 const base = withEdges(new THREE.BoxGeometry(4, 2.4, 3), matFacade);
 base.position.y = 1.2;
+base.castShadow = true;
+base.receiveShadow = true;
 house.add(base);
 
 const roofShape = new THREE.Shape();
@@ -118,6 +134,7 @@ roofShape.lineTo(-2.15, 0);
 const roofGeo = new THREE.ExtrudeGeometry(roofShape, { depth: 3.2, bevelEnabled: false });
 const roof = withEdges(roofGeo, matTrim);
 roof.position.set(0, 2.4, -1.6);
+roof.castShadow = true;
 house.add(roof);
 
 // PV panels on the south roof slope
@@ -158,7 +175,9 @@ for (const z of [-0.7, 0.5]) {
 
 // Outdoor climate unit (Wärmepumpe / AC) — the Klima beat focuses here
 const acUnit = new THREE.Group();
-acUnit.add(withEdges(new THREE.BoxGeometry(0.9, 0.6, 0.35), matTrim));
+const acBody = withEdges(new THREE.BoxGeometry(0.9, 0.6, 0.35), matTrim);
+acBody.castShadow = true;
+acUnit.add(acBody);
 const fanRing = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.03, 10, 40), matClimate);
 fanRing.position.z = 0.18;
 acUnit.add(fanRing);
@@ -203,6 +222,17 @@ const shadow = new THREE.Mesh(
 shadow.rotation.x = -Math.PI / 2;
 shadow.position.y = 0.001;
 house.add(shadow);
+
+// Real contact shadow catcher — renders only the shadow cast by the key light,
+// stacked on top of the stylistic copper glow above for a grounded, ArchViz feel.
+const shadowCatcher = new THREE.Mesh(
+  new THREE.CircleGeometry(6, 48),
+  new THREE.ShadowMaterial({ opacity: 0.4 })
+);
+shadowCatcher.rotation.x = -Math.PI / 2;
+shadowCatcher.position.y = 0.0005;
+shadowCatcher.receiveShadow = true;
+house.add(shadowCatcher);
 
 // ---------- Klima beat: air/heat particle stream around the outdoor unit ----------
 
