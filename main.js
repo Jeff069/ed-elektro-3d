@@ -4,6 +4,7 @@
 // No bloom pass — all glow comes from emissive materials, kept cheap for 60fps.
 
 import * as THREE from "three";
+import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import anime from "animejs";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -15,27 +16,64 @@ const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matc
 const canvas = document.getElementById("scene");
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+// ACES tonemapping + sRGB output — the single cheapest upgrade from "flat 3D" to "rendered"
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
 
 const scene = new THREE.Scene();
 scene.fog = new THREE.Fog(0x0b0d10, 9, 24);
 
+// Studio HDRI environment (generated, no external file) — gives glass and
+// metal real reflections instead of flat PBR colors.
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
 const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100);
 
 // Dark studio lighting with a warm copper key — no bloom pass, glow comes from emissive materials
-scene.add(new THREE.AmbientLight(0x2a3038, 1.3));
-const key = new THREE.DirectionalLight(0xd97a3f, 0.9);
+scene.add(new THREE.HemisphereLight(0x3a4550, 0x0b0d10, 0.9));
+const key = new THREE.DirectionalLight(0xd97a3f, 1.0);
 key.position.set(5, 8, 4);
 scene.add(key);
-const fill = new THREE.DirectionalLight(0x5fa8bd, 0.35);
+const fill = new THREE.DirectionalLight(0x5fa8bd, 0.4);
 fill.position.set(-5, 3, -3);
 scene.add(fill);
 
-// ---------- Materials ----------
+// ---------- Materials (PBR / ArchViz-grade) ----------
 
-// matWall is transparent from the start (opacity animated to 0.15 for the
-// "Röntgen-Blick" x-ray effect during the Smart-Home beat — see FX STATES below).
-const matWall = new THREE.MeshStandardMaterial({
-  color: 0x1b2126, roughness: 0.85, metalness: 0.15, transparent: true, opacity: 1,
+// Procedural PV grid texture — fine cell lines + metallic frame look without an asset file.
+function makePvTexture() {
+  const c = document.createElement("canvas");
+  c.width = c.height = 128;
+  const ctx = c.getContext("2d");
+  ctx.fillStyle = "#0a1420";
+  ctx.fillRect(0, 0, 128, 128);
+  ctx.strokeStyle = "rgba(200, 220, 235, 0.3)";
+  ctx.lineWidth = 2;
+  for (let i = 1; i < 6; i++) {
+    ctx.beginPath(); ctx.moveTo((i * 128) / 6, 0); ctx.lineTo((i * 128) / 6, 128); ctx.stroke();
+  }
+  for (let i = 1; i < 3; i++) {
+    ctx.beginPath(); ctx.moveTo(0, (i * 128) / 3); ctx.lineTo(128, (i * 128) / 3); ctx.stroke();
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+// matFacade (Sichtbeton) and matTrim (dunkles Metall/Holz) are transparent from
+// the start (opacity animated down for the "Röntgen-Blick" x-ray effect during
+// the Smart-Home beat — see FX STATES below). matGlass fades with them.
+const matFacade = new THREE.MeshPhysicalMaterial({
+  color: 0x8d8b85, roughness: 0.55, metalness: 0.04,
+  clearcoat: 0.25, clearcoatRoughness: 0.4,
+  transparent: true, opacity: 1,
+});
+const matTrim = new THREE.MeshPhysicalMaterial({
+  color: 0x201c19, roughness: 0.35, metalness: 0.8,
+  clearcoat: 0.3, clearcoatRoughness: 0.25,
+  transparent: true, opacity: 1,
 });
 const matEdge = new THREE.LineBasicMaterial({ color: 0x3a4148, transparent: true, opacity: 0.8 });
 const matKupfer = new THREE.MeshStandardMaterial({
@@ -45,11 +83,16 @@ const matClimate = new THREE.MeshStandardMaterial({
   color: 0x5fa8bd, emissive: 0x5fa8bd, emissiveIntensity: 0.3, roughness: 0.4, metalness: 0.4,
 });
 // matPanel (PV cells) emissive intensity is ramped up during the PV beat.
-const matPanel = new THREE.MeshStandardMaterial({
-  color: 0x14181c, emissive: 0xd97a3f, emissiveIntensity: 0.06, roughness: 0.3, metalness: 0.6,
+const matPanel = new THREE.MeshPhysicalMaterial({
+  map: makePvTexture(), color: 0x0d1a26, roughness: 0.22, metalness: 0.75,
+  clearcoat: 0.6, clearcoatRoughness: 0.15,
+  emissive: 0xd97a3f, emissiveIntensity: 0.06,
 });
-const matWindow = new THREE.MeshStandardMaterial({
-  color: 0x262b30, emissive: 0xd97a3f, emissiveIntensity: 0.04, roughness: 0.3, metalness: 0.2,
+// Real glass: near-zero roughness + transmission, lit by the generated env map.
+const matGlass = new THREE.MeshPhysicalMaterial({
+  color: 0xbfd7e0, roughness: 0.04, metalness: 0, transmission: 1, thickness: 0.15, ior: 1.45,
+  emissive: 0xd97a3f, emissiveIntensity: 0.04,
+  transparent: true, opacity: 1,
 });
 const matKnxNode = new THREE.MeshBasicMaterial({ color: 0x5fa8bd, transparent: true, opacity: 0.15 });
 
@@ -63,7 +106,7 @@ function withEdges(geo, mat) {
 
 const house = new THREE.Group();
 
-const base = withEdges(new THREE.BoxGeometry(4, 2.4, 3), matWall);
+const base = withEdges(new THREE.BoxGeometry(4, 2.4, 3), matFacade);
 base.position.y = 1.2;
 house.add(base);
 
@@ -73,7 +116,7 @@ roofShape.lineTo(0, 1.3);
 roofShape.lineTo(2.15, 0);
 roofShape.lineTo(-2.15, 0);
 const roofGeo = new THREE.ExtrudeGeometry(roofShape, { depth: 3.2, bevelEnabled: false });
-const roof = withEdges(roofGeo, matWall);
+const roof = withEdges(roofGeo, matTrim);
 roof.position.set(0, 2.4, -1.6);
 house.add(roof);
 
@@ -102,12 +145,12 @@ const winPositions = [
   [-1.2, 1.3, 1.51], [-0.3, 1.3, 1.51], [0.6, 1.3, 1.51], [1.4, 1.3, 1.51],
 ];
 for (const [x, y, z] of winPositions) {
-  const w = new THREE.Mesh(winGeo, matWindow);
+  const w = new THREE.Mesh(winGeo, matGlass);
   w.position.set(x, y, z);
   house.add(w);
 }
 for (const z of [-0.7, 0.5]) {
-  const w = new THREE.Mesh(winGeo, matWindow);
+  const w = new THREE.Mesh(winGeo, matGlass);
   w.position.set(2.01, 1.3, z);
   w.rotation.y = Math.PI / 2;
   house.add(w);
@@ -115,7 +158,7 @@ for (const z of [-0.7, 0.5]) {
 
 // Outdoor climate unit (Wärmepumpe / AC) — the Klima beat focuses here
 const acUnit = new THREE.Group();
-acUnit.add(withEdges(new THREE.BoxGeometry(0.9, 0.6, 0.35), matWall));
+acUnit.add(withEdges(new THREE.BoxGeometry(0.9, 0.6, 0.35), matTrim));
 const fanRing = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.03, 10, 40), matClimate);
 fanRing.position.z = 0.18;
 acUnit.add(fanRing);
@@ -146,7 +189,7 @@ const knxNodes = busPoints.map((p) => {
 });
 
 // Distribution box (Zählerschrank)
-const dbox = withEdges(new THREE.BoxGeometry(0.5, 0.7, 0.12), matWall);
+const dbox = withEdges(new THREE.BoxGeometry(0.5, 0.7, 0.12), matTrim);
 dbox.position.set(-1.8, 0.5, 1.45);
 house.add(dbox);
 
@@ -294,6 +337,27 @@ if (!reducedMotion) {
   });
 }
 
+// ---------- Exit: house fades out once the story ends and #leistungen begins ----------
+// Keeps the 3D model from lingering behind the UI grid below — the lower half
+// of the page is pure glass-card UI, no background object competing for focus.
+
+const exitTrigger = document.querySelector("#leistungen");
+if (exitTrigger && !reducedMotion) {
+  ScrollTrigger.create({
+    trigger: exitTrigger,
+    start: "top 75%",
+    onEnter: () => {
+      canvas.classList.add("scene-exit");
+      gsap.to(camTarget.pos, { 0: houseX + 14, 1: 9, 2: 20, duration: 1.2, ease: "power2.inOut" });
+    },
+    onLeaveBack: () => {
+      canvas.classList.remove("scene-exit");
+      const k = CAM_KLIMA();
+      gsap.to(camTarget.pos, { 0: k.pos[0], 1: k.pos[1], 2: k.pos[2], duration: 1, ease: "power2.inOut" });
+    },
+  });
+}
+
 // ---------- FX STATES per beat: PV glow / x-ray walls + KNX glow / climate particles ----------
 // Each beat's local "focus" is a 0→1→0 triangle as it passes through the viewport,
 // so the effect peaks while its text card is centered and fades on either side.
@@ -332,7 +396,10 @@ function render() {
   matPanel.emissiveIntensity = 0.06 + fx.pv * 1.3;
 
   // Walls go x-ray, KNX nodes + bus light up
-  matWall.opacity = 1 - fx.smart * 0.85;
+  const wallOpacity = 1 - fx.smart * 0.85;
+  matFacade.opacity = wallOpacity;
+  matTrim.opacity = wallOpacity;
+  matGlass.opacity = Math.max(wallOpacity, 0.25); // glass never goes fully invisible
   matKupfer.emissiveIntensity = 0.55 + fx.smart * 1.4;
   knxNodes.forEach((node) => { node.material.opacity = 0.15 + fx.smart * 0.85; });
 

@@ -250,10 +250,24 @@ a { color: inherit; }
   transition: opacity 1.2s ease;
 }
 #scene.ready { opacity: 1; }
+#scene.scene-exit { opacity: 0; }
 
 /* ---------- Story: scrollytelling camera beats ---------- */
 
 .story { position: relative; z-index: 1; }
+
+/* Soft handoff from the 3D scrollytelling into the flat UI grid below —
+   fades the background to solid night right where the house itself fades out. */
+.story::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 60vh;
+  background: linear-gradient(to bottom, transparent, var(--night) 90%);
+  pointer-events: none;
+}
 
 .beat {
   min-height: 100vh;
