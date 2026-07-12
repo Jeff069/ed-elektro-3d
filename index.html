@@ -31,7 +31,7 @@
   <main>
 
     <section class="hero" id="hero">
-      <div class="hero-text">
+      <div class="hero-text glass">
         <p class="eyebrow">Ganzheitlich. Durchdacht. Verlässlich.</p>
         <h1 class="display-xl">Gebäudetechnik<br>aus einer Hand</h1>
         <p class="lead">Elektro, Klima, Sanitär, Photovoltaik und Smart Home — geplant und ausgeführt von einem Betrieb. Seit 2012 in Nieder-Olm, Mainz und Alzey.</p>
@@ -40,6 +40,40 @@
           <a class="btn btn-secondary" href="#leistungen">Leistungen ansehen</a>
         </div>
       </div>
+    </section>
+
+    <!-- ============================================================
+         STORY: Scrollytelling-Kamerafahrt durchs Haus.
+         Jede .beat-Section entspricht einem Kamera-Zustand in main.js
+         (Suche dort nach CAMERA STATES). data-beat verknüpft Text und
+         3D-Kameraführung über ScrollTrigger.
+         ============================================================ -->
+    <section class="story" id="story">
+
+      <div class="beat beat-pv" data-beat="pv">
+        <div class="beat-card glass">
+          <p class="eyebrow"><span class="beat-dot" aria-hidden="true"></span>F4 / Photovoltaik</p>
+          <h2>Die Sonne auf dem eigenen Dach</h2>
+          <p>PV-Anlagen von der Auslegung bis zur Netzanmeldung. Eigenen Strom erzeugen, speichern und im Gebäude verteilen — die Kamera schwenkt aufs Dach, während die Module unter Last aufleuchten.</p>
+        </div>
+      </div>
+
+      <div class="beat beat-smart" data-beat="smart">
+        <div class="beat-card glass">
+          <p class="eyebrow"><span class="beat-dot" aria-hidden="true"></span>F1 / F5 · Elektro &amp; Smart Home</p>
+          <h2>Was unter Putz passiert</h2>
+          <p>KNX-Bus, Zählerschrank, Datentechnik — die Wände werden durchsichtig und geben den Blick frei auf das Nervensystem des Gebäudes: jede Leitung geplant, jeder Knoten dokumentiert.</p>
+        </div>
+      </div>
+
+      <div class="beat beat-klima" data-beat="klima">
+        <div class="beat-card glass">
+          <p class="eyebrow"><span class="beat-dot" aria-hidden="true"></span>F2 / F3 · Klima &amp; Sanitär</p>
+          <h2>Konstante Temperatur, das ganze Jahr</h2>
+          <p>Split-Klimaanlagen, Wärmepumpe, Warmwasser — feine Luft- und Wärmeströme ziehen ums Gebäude, während sich die Kamera auf die Technik im Außenbereich senkt.</p>
+        </div>
+      </div>
+
     </section>
 
     <section class="leistungen" id="leistungen">
@@ -51,13 +85,13 @@
 
         <div class="leistung-flip" data-plan="F1" tabindex="0">
           <div class="leistung-card">
-            <div class="leistung-front">
+            <div class="leistung-front glass">
               <div class="leistung-marker" aria-hidden="true"><span>F1</span></div>
               <h3>Elektro &amp; Netzwerk</h3>
               <p>Stromkreis-Planung, Zählerschrank-Installation, FI-Schalter-Nachrüstung, Datentechnik und E-Mobilität.</p>
               <span class="leistung-hint">Details ▸</span>
             </div>
-            <div class="leistung-back">
+            <div class="leistung-back glass">
               <h4>F1 / Leistungsdetails</h4>
               <ul class="spec-list">
                 <li>Zählerschränke &amp; Unterverteilungen</li>
@@ -70,13 +104,13 @@
 
         <div class="leistung-flip" data-plan="F2" tabindex="0">
           <div class="leistung-card">
-            <div class="leistung-front">
+            <div class="leistung-front glass">
               <div class="leistung-marker" aria-hidden="true"><span>F2</span></div>
               <h3>Klima</h3>
               <p>Split- und Multi-Split-Klimaanlagen für Wohn- und Gewerbeflächen — geplant, montiert und regelmäßig gewartet.</p>
               <span class="leistung-hint">Details ▸</span>
             </div>
-            <div class="leistung-back">
+            <div class="leistung-back glass">
               <h4>F2 / Leistungsdetails</h4>
               <ul class="spec-list">
                 <li>Split- &amp; Multi-Split-Anlagen</li>
@@ -89,13 +123,13 @@
 
         <div class="leistung-flip" data-plan="F3" tabindex="0">
           <div class="leistung-card">
-            <div class="leistung-front">
+            <div class="leistung-front glass">
               <div class="leistung-marker" aria-hidden="true"><span>F3</span></div>
               <h3>Sanitär &amp; Heizung</h3>
               <p>Badmodernisierung, Warmwasserbereitung und Heizungstechnik — ein Ansprechpartner für das ganze Gebäude.</p>
               <span class="leistung-hint">Details ▸</span>
             </div>
-            <div class="leistung-back">
+            <div class="leistung-back glass">
               <h4>F3 / Leistungsdetails</h4>
               <ul class="spec-list">
                 <li>Badmodernisierung</li>
@@ -108,13 +142,13 @@
 
         <div class="leistung-flip" data-plan="F4" tabindex="0">
           <div class="leistung-card">
-            <div class="leistung-front">
+            <div class="leistung-front glass">
               <div class="leistung-marker" aria-hidden="true"><span>F4</span></div>
               <h3>Photovoltaik</h3>
               <p>PV-Anlagen von der Auslegung bis zur Netzanmeldung. Eigenen Strom erzeugen, speichern und verteilen.</p>
               <span class="leistung-hint">Details ▸</span>
             </div>
-            <div class="leistung-back">
+            <div class="leistung-back glass">
               <h4>F4 / Leistungsdetails</h4>
               <ul class="spec-list">
                 <li>Planung &amp; Installation</li>
@@ -127,13 +161,13 @@
 
         <div class="leistung-flip" data-plan="F5" tabindex="0">
           <div class="leistung-card">
-            <div class="leistung-front">
+            <div class="leistung-front glass">
               <div class="leistung-marker" aria-hidden="true"><span>F5</span></div>
               <h3>Smart Home &amp; KNX</h3>
               <p>KNX-Verkabelung und Smart-Home-Elektroinstallation: Licht, Klima, Beschattung und Energie.</p>
               <span class="leistung-hint">Details ▸</span>
             </div>
-            <div class="leistung-back">
+            <div class="leistung-back glass">
               <h4>F5 / Leistungsdetails</h4>
               <ul class="spec-list">
                 <li>KNX-Busplanung &amp; -Verkabelung</li>
@@ -148,15 +182,15 @@
     </section>
 
     <section class="zahlen" id="zahlen">
-      <div class="zahl">
+      <div class="zahl glass">
         <span class="zahl-value" data-count="2012" data-format="year">0</span>
         <span class="zahl-label">Gegründet</span>
       </div>
-      <div class="zahl">
+      <div class="zahl glass">
         <span class="zahl-value" data-count="3000" data-suffix="+">0</span>
         <span class="zahl-label">Abgeschlossene Projekte</span>
       </div>
-      <div class="zahl">
+      <div class="zahl glass">
         <span class="zahl-value" data-count="6">0</span>
         <span class="zahl-label">Tage die Woche erreichbar</span>
       </div>
@@ -168,17 +202,17 @@
         <h2 class="display-lg">Ablauf</h2>
       </div>
       <ol class="ablauf-steps">
-        <li>
+        <li class="glass">
           <span class="ablauf-num">01</span>
           <h3>Beratung</h3>
           <p>Vor Ort-Termin, Bestandsaufnahme, Klärung von Bedarf und Budget.</p>
         </li>
-        <li>
+        <li class="glass">
           <span class="ablauf-num">02</span>
           <h3>Planung</h3>
           <p>Technische Auslegung, Angebot, Abstimmung der Ausführungsdetails.</p>
         </li>
-        <li>
+        <li class="glass">
           <span class="ablauf-num">03</span>
           <h3>Ausführung</h3>
           <p>Fachgerechte Installation, Inbetriebnahme, Dokumentation und Übergabe.</p>
@@ -191,7 +225,7 @@
         <p class="eyebrow">Über uns</p>
         <h2 class="display-lg">Ihr Betrieb vor Ort</h2>
       </div>
-      <div class="region-body">
+      <div class="region-body glass">
         <p class="lead-small">Seit 2012 als Installationsbetrieb in der Region tätig. Wir betreuen Privatkunden, Gewerbe und Industrie — von der Einzelinstallation bis zum kompletten Gebäudekonzept.</p>
         <ul class="region-chips">
           <li>Nieder-Olm</li>
@@ -207,10 +241,12 @@
     </section>
 
     <section class="kontakt" id="kontakt">
-      <p class="eyebrow">Anschluss herstellen</p>
-      <h2 class="display-lg">Projekt besprechen?</h2>
-      <p class="lead-small">Über 12 Jahre Erfahrung, mehr als 3.000 abgeschlossene Projekte. Erreichbar 6 Tage die Woche.</p>
-      <a class="cta-tel" href="tel:067326007358">06732 600 7358</a>
+      <div class="kontakt-card glass">
+        <p class="eyebrow">Anschluss herstellen</p>
+        <h2 class="display-lg">Projekt besprechen?</h2>
+        <p class="lead-small">Über 12 Jahre Erfahrung, mehr als 3.000 abgeschlossene Projekte. Erreichbar 6 Tage die Woche.</p>
+        <a class="cta-tel" href="tel:067326007358">06732 600 7358</a>
+      </div>
     </section>
 
   </main>

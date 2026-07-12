@@ -1,6 +1,7 @@
-// ED Elektro und Klimasysteme — hero 3D piece
-// Light clay/blueprint rendering of the procedural house, gently scroll-coupled.
-// No camera fly-through, no bloom, no particles — a calm, still object.
+// ED Elektro und Klimasysteme — immersive scrollytelling background
+// Three.js house fixed full-viewport behind the page; GSAP ScrollTrigger drives
+// a lerped/damped camera through three narrative beats (PV / Smart Home / Klima).
+// No bloom pass — all glow comes from emissive materials, kept cheap for 60fps.
 
 import * as THREE from "three";
 import anime from "animejs";
@@ -16,7 +17,7 @@ const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true 
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
 const scene = new THREE.Scene();
-scene.fog = new THREE.Fog(0x0b0d10, 8, 22);
+scene.fog = new THREE.Fog(0x0b0d10, 9, 24);
 
 const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100);
 
@@ -31,8 +32,10 @@ scene.add(fill);
 
 // ---------- Materials ----------
 
+// matWall is transparent from the start (opacity animated to 0.15 for the
+// "Röntgen-Blick" x-ray effect during the Smart-Home beat — see FX STATES below).
 const matWall = new THREE.MeshStandardMaterial({
-  color: 0x1b2126, roughness: 0.85, metalness: 0.15,
+  color: 0x1b2126, roughness: 0.85, metalness: 0.15, transparent: true, opacity: 1,
 });
 const matEdge = new THREE.LineBasicMaterial({ color: 0x3a4148, transparent: true, opacity: 0.8 });
 const matKupfer = new THREE.MeshStandardMaterial({
@@ -41,12 +44,14 @@ const matKupfer = new THREE.MeshStandardMaterial({
 const matClimate = new THREE.MeshStandardMaterial({
   color: 0x5fa8bd, emissive: 0x5fa8bd, emissiveIntensity: 0.3, roughness: 0.4, metalness: 0.4,
 });
+// matPanel (PV cells) emissive intensity is ramped up during the PV beat.
 const matPanel = new THREE.MeshStandardMaterial({
-  color: 0x14181c, roughness: 0.3, metalness: 0.6,
+  color: 0x14181c, emissive: 0xd97a3f, emissiveIntensity: 0.06, roughness: 0.3, metalness: 0.6,
 });
 const matWindow = new THREE.MeshStandardMaterial({
   color: 0x262b30, emissive: 0xd97a3f, emissiveIntensity: 0.04, roughness: 0.3, metalness: 0.2,
 });
+const matKnxNode = new THREE.MeshBasicMaterial({ color: 0x5fa8bd, transparent: true, opacity: 0.15 });
 
 function withEdges(geo, mat) {
   const mesh = new THREE.Mesh(geo, mat);
@@ -76,6 +81,7 @@ house.add(roof);
 const nx = -1.3 / 2.513, ny = 2.15 / 2.513;
 const slopeAngle = Math.atan2(1.3, 2.15);
 const panelGeo = new THREE.BoxGeometry(0.62, 0.02, 0.68);
+const pvPanels = [];
 for (const u of [0.28, 0.64]) {
   for (let col = 0; col < 4; col++) {
     const p = new THREE.Mesh(panelGeo, matPanel);
@@ -86,6 +92,7 @@ for (const u of [0.28, 0.64]) {
     );
     p.rotation.z = slopeAngle;
     house.add(p);
+    pvPanels.push(p);
   }
 }
 
@@ -106,7 +113,7 @@ for (const z of [-0.7, 0.5]) {
   house.add(w);
 }
 
-// Outdoor climate unit
+// Outdoor climate unit (Wärmepumpe / AC) — the Klima beat focuses here
 const acUnit = new THREE.Group();
 acUnit.add(withEdges(new THREE.BoxGeometry(0.9, 0.6, 0.35), matWall));
 const fanRing = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.03, 10, 40), matClimate);
@@ -116,7 +123,7 @@ acUnit.position.set(2.5, 0.35, 0.9);
 acUnit.rotation.y = Math.PI / 2;
 house.add(acUnit);
 
-// KNX bus line — the one copper accent
+// KNX bus line — the copper "nervous system" of the building
 const busPoints = [
   new THREE.Vector3(-1.8, 0.15, 1.4),
   new THREE.Vector3(-1.8, 2.2, 1.4),
@@ -129,7 +136,16 @@ const busCurve = new THREE.CatmullRomCurve3(busPoints);
 const busTube = new THREE.Mesh(new THREE.TubeGeometry(busCurve, 80, 0.018, 8), matKupfer);
 house.add(busTube);
 
-// Distribution box
+// KNX nodes — glowing markers at each bus point, dim by default, lit up
+// during the Smart-Home beat alongside the x-ray wall effect.
+const knxNodes = busPoints.map((p) => {
+  const node = new THREE.Mesh(new THREE.SphereGeometry(0.055, 12, 12), matKnxNode.clone());
+  node.position.copy(p);
+  house.add(node);
+  return node;
+});
+
+// Distribution box (Zählerschrank)
 const dbox = withEdges(new THREE.BoxGeometry(0.5, 0.7, 0.12), matWall);
 dbox.position.set(-1.8, 0.5, 1.45);
 house.add(dbox);
@@ -145,47 +161,155 @@ shadow.rotation.x = -Math.PI / 2;
 shadow.position.y = 0.001;
 house.add(shadow);
 
-// ---------- Scroll-coupled + idle rotation ----------
-// Scroll contributes ~120° across the page; a slow constant idle spin keeps
-// the background alive even when the visitor isn't scrolling.
+// ---------- Klima beat: air/heat particle stream around the outdoor unit ----------
 
-const rot = { scroll: -0.35 };
-if (!reducedMotion) {
-  gsap.to(rot, {
-    scroll: rot.scroll + Math.PI * (120 / 180),
-    ease: "none",
-    scrollTrigger: {
-      trigger: document.body,
-      start: "top top",
-      end: "bottom bottom",
-      scrub: 0.6,
-    },
-  });
+const CLIMATE_PARTICLE_COUNT = 90;
+const climateGeo = new THREE.BufferGeometry();
+const climatePos = new Float32Array(CLIMATE_PARTICLE_COUNT * 3);
+const climateSeed = new Float32Array(CLIMATE_PARTICLE_COUNT);
+for (let i = 0; i < CLIMATE_PARTICLE_COUNT; i++) {
+  const a = Math.random() * Math.PI * 2;
+  const r = 0.3 + Math.random() * 0.9;
+  climatePos[i * 3] = Math.cos(a) * r;
+  climatePos[i * 3 + 1] = Math.random() * 1.4 - 0.2;
+  climatePos[i * 3 + 2] = Math.sin(a) * r;
+  climateSeed[i] = Math.random() * Math.PI * 2;
 }
+climateGeo.setAttribute("position", new THREE.BufferAttribute(climatePos, 3));
+const climateParticles = new THREE.Points(
+  climateGeo,
+  new THREE.PointsMaterial({ color: 0x5fa8bd, size: 0.045, transparent: true, opacity: 0 })
+);
+climateParticles.position.copy(acUnit.position);
+house.add(climateParticles);
+
+// ---------- Idle rotation ----------
+// A slow constant spin keeps the background alive even when nothing else is happening.
+
+let idleAngle = reducedMotion ? 0 : -0.35;
 
 // ---------- Layout: house/camera framing adapts to full-viewport aspect ----------
 
 const baseY = 1.1;
+let houseX = 0; // updated by layout(), read by the camera states below
 
 function layout() {
   const w = window.innerWidth;
   const h = window.innerHeight;
   const narrow = w < 800;
 
-  // Camera stays put; only the house shifts, so a bigger offset actually
-  // moves it further across the frame instead of just riding along with the camera.
-  const offsetX = narrow ? 0 : Math.min(w * 0.007, 7.5);
-
-  house.position.x = offsetX;
+  houseX = narrow ? 0 : Math.min(w * 0.007, 7.5);
+  house.position.x = houseX;
   house.scale.setScalar(narrow ? 0.55 : 0.62);
 
   camera.aspect = w / h;
-  camera.position.set(6.4, 3.2, 11.5);
-  camera.lookAt(1.6, baseY, 0);
   camera.updateProjectionMatrix();
-
   renderer.setSize(w, h, false);
 }
+
+// ============================================================================
+// CAMERA STATES — tweak these coordinates to adjust the scroll choreography.
+// pos = camera position [x, y, z], look = look-at target [x, y, z].
+// houseX is added automatically so framing stays correct at every screen width.
+// ============================================================================
+
+function CAM_HERO() {
+  // Hero: calm establishing shot, house rotates gently, camera never moves.
+  // Position is fixed (not houseX-relative) so the house — offset further
+  // right on wide screens — sits clear of the text column on the left.
+  return { pos: [6.4, 3.2, 11.5], look: [1.6, baseY, 0] };
+}
+
+function CAM_PV() {
+  // Beat 1 — Photovoltaik: swoop up and in toward the roof, looking down at the panels.
+  return { pos: [houseX + 3.0, 5.4, 4.6], look: [houseX + 0.4, 2.6, -0.8] };
+}
+
+function CAM_SMART() {
+  // Beat 2 — Smart Home/Elektro: pull back onto the opposite side, house yaws ~45°
+  // (see ROTATION STATES below), walls go x-ray to reveal the KNX bus.
+  return { pos: [houseX - 3.6, 2.1, 5.6], look: [houseX - 0.3, 1.2, 0.2] };
+}
+
+function CAM_KLIMA() {
+  // Beat 3 — Klima/Sanitär: low angle, focused on the outdoor unit at (2.5, 0.35, 0.9).
+  return { pos: [houseX + 6.8, 1.7, 5.2], look: [houseX + 1.8, 0.5, 0.9] };
+}
+
+// ---------- ROTATION STATES ----------
+// Extra house rotation/tilt per beat, layered on top of the idle spin.
+
+const ROT_HERO = { y: 0, z: 0 };
+const ROT_PV = { y: 0.3, z: 0 };
+const ROT_SMART = { y: Math.PI / 4, z: 0 }; // "dreht das Haus um 45 Grad"
+const ROT_KLIMA = { y: Math.PI / 4, z: 0.06 }; // "Das Haus neigt sich leicht"
+
+// ---------- Camera + rotation targets, updated by scroll, applied via lerp ----------
+
+const camTarget = CAM_HERO();
+const rotTarget = { ...ROT_HERO };
+const camPos = new THREE.Vector3(...camTarget.pos);
+const camLook = new THREE.Vector3(...camTarget.look);
+
+function lerp3(target, a, b, t) {
+  target[0] = a[0] + (b[0] - a[0]) * t;
+  target[1] = a[1] + (b[1] - a[1]) * t;
+  target[2] = a[2] + (b[2] - a[2]) * t;
+}
+
+if (!reducedMotion) {
+  ScrollTrigger.create({
+    trigger: "#story",
+    start: "top top",
+    end: "bottom bottom",
+    scrub: true,
+    onUpdate(self) {
+      const p = self.progress; // 0 → 1 across all three beats
+      const seg = 1 / 3;
+      let a, b, t, ra, rb;
+
+      if (p < seg) {
+        a = CAM_HERO(); b = CAM_PV(); t = p / seg;
+        ra = ROT_HERO; rb = ROT_PV;
+      } else if (p < seg * 2) {
+        a = CAM_PV(); b = CAM_SMART(); t = (p - seg) / seg;
+        ra = ROT_PV; rb = ROT_SMART;
+      } else {
+        a = CAM_SMART(); b = CAM_KLIMA(); t = (p - seg * 2) / seg;
+        ra = ROT_SMART; rb = ROT_KLIMA;
+      }
+
+      lerp3(camTarget.pos, a.pos, b.pos, t);
+      lerp3(camTarget.look, a.look, b.look, t);
+      rotTarget.y = ra.y + (rb.y - ra.y) * t;
+      rotTarget.z = ra.z + (rb.z - ra.z) * t;
+    },
+    onLeaveBack() {
+      const hero = CAM_HERO();
+      camTarget.pos = hero.pos;
+      camTarget.look = hero.look;
+      rotTarget.y = ROT_HERO.y;
+      rotTarget.z = ROT_HERO.z;
+    },
+  });
+}
+
+// ---------- FX STATES per beat: PV glow / x-ray walls + KNX glow / climate particles ----------
+// Each beat's local "focus" is a 0→1→0 triangle as it passes through the viewport,
+// so the effect peaks while its text card is centered and fades on either side.
+
+const beatTriggers = {};
+["pv", "smart", "klima"].forEach((name) => {
+  const el = document.querySelector(`[data-beat="${name}"]`);
+  if (!el) return;
+  beatTriggers[name] = ScrollTrigger.create({ trigger: el, start: "top bottom", end: "bottom top" });
+});
+
+function triangle(p) {
+  return Math.max(0, 1 - Math.abs(p * 2 - 1));
+}
+
+const fx = { pv: 0, smart: 0, klima: 0 };
 
 // ---------- Render loop ----------
 
@@ -193,11 +317,53 @@ const clock = new THREE.Clock();
 
 function render() {
   const t = clock.getElapsedTime();
-  const idleSpin = reducedMotion ? 0 : t * 0.05;
-  const idleBob = reducedMotion ? 0 : Math.sin(t * 0.6) * 0.02;
 
-  house.rotation.y = rot.scroll + idleSpin;
-  house.position.y = idleBob;
+  if (!reducedMotion) idleAngle += 0.0018;
+
+  // FX targets from scroll position, smoothed toward current fx values
+  const pvT = beatTriggers.pv ? triangle(beatTriggers.pv.progress) : 0;
+  const smartT = beatTriggers.smart ? triangle(beatTriggers.smart.progress) : 0;
+  const klimaT = beatTriggers.klima ? triangle(beatTriggers.klima.progress) : 0;
+  fx.pv += (pvT - fx.pv) * 0.08;
+  fx.smart += (smartT - fx.smart) * 0.08;
+  fx.klima += (klimaT - fx.klima) * 0.08;
+
+  // PV panels light up
+  matPanel.emissiveIntensity = 0.06 + fx.pv * 1.3;
+
+  // Walls go x-ray, KNX nodes + bus light up
+  matWall.opacity = 1 - fx.smart * 0.85;
+  matKupfer.emissiveIntensity = 0.55 + fx.smart * 1.4;
+  knxNodes.forEach((node) => { node.material.opacity = 0.15 + fx.smart * 0.85; });
+
+  // Climate particles drift upward in a loose spiral around the outdoor unit
+  climateParticles.material.opacity = fx.klima * 0.85;
+  if (fx.klima > 0.01) {
+    const pos = climateGeo.attributes.position;
+    for (let i = 0; i < CLIMATE_PARTICLE_COUNT; i++) {
+      const seed = climateSeed[i];
+      const rise = (t * 0.3 + seed) % 1.4;
+      const a = seed + t * 0.4;
+      const r = 0.3 + ((i % 9) / 9) * 0.9;
+      pos.setXYZ(i, Math.cos(a) * r, rise - 0.2, Math.sin(a) * r);
+    }
+    pos.needsUpdate = true;
+  }
+
+  // Camera + house: double-smoothed (GSAP scrub already eases, this adds a
+  // per-frame damping pass so fast scrolling never snaps or jitters).
+  camPos.set(...camTarget.pos);
+  camLook.set(...camTarget.look);
+  camera.position.lerp(camPos, reducedMotion ? 1 : 0.07);
+  const lookVec = new THREE.Vector3();
+  camera.getWorldDirection(lookVec);
+  const currentLook = camera.position.clone().add(lookVec);
+  currentLook.lerp(camLook, reducedMotion ? 1 : 0.07);
+  camera.lookAt(currentLook);
+
+  house.rotation.y += (idleAngle + rotTarget.y - house.rotation.y) * (reducedMotion ? 1 : 0.06);
+  house.rotation.z += (rotTarget.z - house.rotation.z) * (reducedMotion ? 1 : 0.06);
+  house.position.y = reducedMotion ? 0 : Math.sin(t * 0.6) * 0.02;
 
   renderer.render(scene, camera);
   requestAnimationFrame(render);
@@ -205,6 +371,8 @@ function render() {
 
 window.addEventListener("resize", layout);
 layout();
+camera.position.copy(camPos);
+camera.lookAt(camLook);
 render();
 
 requestAnimationFrame(() => {
@@ -216,7 +384,7 @@ document.getElementById("year").textContent = new Date().getFullYear();
 // ---------- Content reveals ----------
 
 if (!reducedMotion) {
-  gsap.utils.toArray(".leistung, .zahl, .ablauf-steps li, .region-body").forEach((el) => {
+  gsap.utils.toArray(".leistung-flip, .zahl, .ablauf-steps li, .region-body, .beat-card").forEach((el) => {
     gsap.from(el, {
       opacity: 0,
       y: 28,

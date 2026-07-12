@@ -1,12 +1,11 @@
-/* ED Elektro und Klimasysteme — dunkler, taktiler Firmenlook
-   Palette: Nacht #0B0D10 · Panel #14181C · Kupfer-Glow #D97A3F · Klima-Blau #5FA8BD · Text #E7E2D9 */
+/* ED Elektro und Klimasysteme — immersives Scrollytelling über 3D-Hintergrund
+   Palette: Nacht #0B0D10 · Kupfer-Glow #D97A3F · Klima-Blau #5FA8BD · Text #E7E2D9
+   Glass: dünne, transparente Karten mit Blur, damit das Haus im Hintergrund durchscheint */
 
 :root {
   --night: #0b0d10;
-  --panel: #14181c;
-  --panel-raised: #1b2126;
   --text: #e7e2d9;
-  --text-dim: #8a8f94;
+  --text-dim: #9aa0a6;
   --copper: #d97a3f;
   --copper-dim: #a35a2c;
   --climate: #5fa8bd;
@@ -14,6 +13,13 @@
   --font-display: "Archivo", sans-serif;
   --font-mono: "IBM Plex Mono", monospace;
   --max: 74rem;
+
+  /* Glassmorphism tokens */
+  --glass-bg: rgba(20, 24, 28, 0.38);
+  --glass-bg-raised: rgba(28, 33, 38, 0.46);
+  --glass-border: rgba(255, 255, 255, 0.09);
+  --glass-blur: 18px;
+  --glass-shadow: 0 8px 40px rgba(0, 0, 0, 0.35);
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -57,7 +63,17 @@ a { color: inherit; }
   color: var(--text);
 }
 
-.section-head { max-width: var(--max); margin: 0 auto 3rem; padding: 0 6vw; }
+.section-head { max-width: var(--max); margin: 0 auto 3rem; padding: 0 6vw; position: relative; z-index: 1; }
+
+/* Reusable glass surface — apply to any card/panel that floats over the 3D scene */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  box-shadow: var(--glass-shadow);
+}
 
 /* ---------- Header ---------- */
 
@@ -65,9 +81,9 @@ a { color: inherit; }
   position: sticky;
   top: 0;
   z-index: 20;
-  background: rgba(11, 13, 16, 0.85);
-  backdrop-filter: blur(6px);
-  border-bottom: 1px solid var(--line);
+  background: rgba(11, 13, 16, 0.55);
+  backdrop-filter: blur(14px) saturate(140%);
+  border-bottom: 1px solid var(--glass-border);
 }
 
 .header-inner {
@@ -118,7 +134,7 @@ a { color: inherit; }
   letter-spacing: 0.05em;
   text-decoration: none;
   color: var(--text);
-  border: 1px solid var(--line);
+  border: 1px solid var(--glass-border);
   padding: 0.55rem 1rem;
   border-radius: 999px;
   white-space: nowrap;
@@ -140,7 +156,7 @@ a { color: inherit; }
   padding: 4.5rem 6vw 3rem;
   display: flex;
   align-items: center;
-  min-height: 82vh;
+  min-height: 92vh;
 }
 
 .hero-text { max-width: 34rem; }
@@ -172,12 +188,12 @@ a { color: inherit; }
   justify-content: center;
 }
 
-/* Pearl button — glossy dark pill with a top highlight, inspired by uiverse.io/marcelodolza */
 .btn-primary {
   color: var(--text);
   background:
     radial-gradient(120% 180% at 50% -40%, rgba(255, 255, 255, 0.22), transparent 60%),
-    linear-gradient(180deg, #23292f 0%, #14181c 60%, #0e1114 100%);
+    linear-gradient(180deg, rgba(35, 41, 47, 0.9) 0%, rgba(20, 24, 28, 0.9) 60%, rgba(14, 17, 20, 0.9) 100%);
+  backdrop-filter: blur(6px);
   box-shadow:
     inset 0 1px 1px rgba(255, 255, 255, 0.15),
     inset 0 -6px 10px rgba(0, 0, 0, 0.45),
@@ -196,11 +212,11 @@ a { color: inherit; }
 
 .btn-primary:active { transform: translateY(0); }
 
-/* Ring-hover button — dashed ring sweeps in on hover, inspired by uiverse.io/augustin_4687 */
 .btn-secondary {
   color: var(--text);
-  background: transparent;
-  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--glass-border);
 }
 
 .btn-secondary::before {
@@ -235,16 +251,61 @@ a { color: inherit; }
 }
 #scene.ready { opacity: 1; }
 
-/* ---------- Leistungen: Flip-Cards ---------- */
+/* ---------- Story: scrollytelling camera beats ---------- */
+
+.story { position: relative; z-index: 1; }
+
+.beat {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  padding: 4rem 6vw;
+}
+
+.beat-pv { justify-content: flex-end; }
+.beat-smart { justify-content: flex-start; }
+.beat-klima { justify-content: flex-end; }
+
+.beat-card {
+  max-width: 26rem;
+  padding: 2.2rem;
+}
+
+.beat-card .eyebrow { display: flex; align-items: center; gap: 0.6rem; }
+
+.beat-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--copper);
+  box-shadow: 0 0 8px var(--copper);
+  display: inline-block;
+}
+
+.beat-smart .beat-dot { background: var(--climate); box-shadow: 0 0 8px var(--climate); }
+.beat-klima .beat-dot { background: var(--climate); box-shadow: 0 0 8px var(--climate); }
+
+.beat-card h2 {
+  font-size: clamp(1.7rem, 3vw, 2.4rem);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin-bottom: 1rem;
+}
+
+.beat-card p {
+  font-size: 1rem;
+  line-height: 1.65;
+  color: var(--text-dim);
+}
+
+/* ---------- Leistungen: Flip-Cards (glass) ---------- */
 
 .leistungen {
   position: relative;
   z-index: 1;
   max-width: var(--max);
   margin: 0 auto;
-  padding: 5rem 6vw 2rem;
-  background: rgba(11, 13, 16, 0.7);
-  backdrop-filter: blur(3px);
+  padding: 6rem 6vw 2rem;
 }
 
 .leistungen-list {
@@ -275,15 +336,12 @@ a { color: inherit; }
   position: absolute;
   inset: 0;
   backface-visibility: hidden;
-  border: 1px solid var(--line);
-  border-radius: 6px;
   padding: 1.6rem;
-  background: var(--panel);
   display: flex;
   flex-direction: column;
 }
 
-.leistung-back { transform: rotateY(180deg); background: var(--panel-raised); }
+.leistung-back { transform: rotateY(180deg); background: var(--glass-bg-raised); }
 
 .leistung-marker {
   width: 2.6rem;
@@ -353,15 +411,11 @@ a { color: inherit; }
   position: relative;
   z-index: 1;
   max-width: var(--max);
-  margin: 0 auto;
-  padding: 4rem 6vw;
+  margin: 3rem auto;
+  padding: 3rem 6vw;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 2rem;
-  border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
-  background: rgba(11, 13, 16, 0.7);
-  backdrop-filter: blur(3px);
 }
 
 .zahl { text-align: center; }
@@ -388,22 +442,16 @@ a { color: inherit; }
 
 /* ---------- Ablauf ---------- */
 
-.ablauf {
-  position: relative;
-  z-index: 1;
-  max-width: var(--max);
-  margin: 0 auto;
-  padding: 5rem 6vw;
-  background: rgba(11, 13, 16, 0.7);
-  backdrop-filter: blur(3px);
-}
+.ablauf { max-width: var(--max); margin: 0 auto; padding: 5rem 6vw; position: relative; z-index: 1; }
 
 .ablauf-steps {
   list-style: none;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 2.5rem;
+  gap: 1.6rem;
 }
+
+.ablauf-steps li { padding: 1.8rem; }
 
 .ablauf-num {
   display: block;
@@ -418,16 +466,9 @@ a { color: inherit; }
 
 /* ---------- Region ---------- */
 
-.region {
-  position: relative;
-  z-index: 1;
-  max-width: var(--max);
-  margin: 0 auto;
-  padding: 5rem 6vw;
-  border-top: 1px solid var(--line);
-  background: rgba(11, 13, 16, 0.7);
-  backdrop-filter: blur(3px);
-}
+.region { max-width: var(--max); margin: 0 auto; padding: 5rem 6vw; position: relative; z-index: 1; }
+
+.region-body { padding: 2.2rem; max-width: 44rem; }
 
 .lead-small { font-size: 1.02rem; line-height: 1.65; color: var(--text-dim); max-width: 40rem; }
 
@@ -444,7 +485,7 @@ a { color: inherit; }
   font-size: 0.78rem;
   letter-spacing: 0.04em;
   padding: 0.5rem 1rem;
-  border: 1px solid var(--line);
+  border: 1px solid var(--glass-border);
   border-radius: 999px;
   color: var(--text);
 }
@@ -457,14 +498,13 @@ a { color: inherit; }
 .kontakt {
   position: relative;
   z-index: 1;
-  max-width: var(--max);
+  max-width: 40rem;
   margin: 0 auto;
-  padding: 6rem 6vw;
+  padding: 4rem 6vw;
   text-align: center;
-  border-top: 1px solid var(--line);
-  background: rgba(11, 13, 16, 0.7);
-  backdrop-filter: blur(3px);
 }
+
+.kontakt-card { padding: 3rem 2rem; }
 
 .kontakt .eyebrow, .kontakt .display-lg, .kontakt .lead-small { margin-left: auto; margin-right: auto; }
 .kontakt .lead-small { margin-top: 1rem; }
@@ -491,10 +531,8 @@ a { color: inherit; }
   position: relative;
   z-index: 1;
   max-width: var(--max);
-  margin: 0 auto;
-  padding: 2rem 6vw 3rem;
-  background: rgba(11, 13, 16, 0.7);
-  backdrop-filter: blur(3px);
+  margin: 2rem auto 0;
+  padding: 1.4rem 6vw;
   display: flex;
   justify-content: space-between;
   flex-wrap: wrap;
@@ -503,6 +541,7 @@ a { color: inherit; }
   font-size: 0.72rem;
   letter-spacing: 0.05em;
   color: var(--text-dim);
+  border-top: 1px solid var(--glass-border);
 }
 
 .site-footer nav { display: flex; gap: 1.2rem; }
@@ -521,8 +560,10 @@ a:focus-visible, button:focus-visible {
 @media (max-width: 900px) {
   .hero { min-height: auto; padding-top: 3rem; }
   .site-nav { display: none; }
-  .ablauf-steps { grid-template-columns: 1fr; gap: 2rem; }
-  .zahlen { grid-template-columns: 1fr; gap: 2.2rem; }
+  .ablauf-steps { grid-template-columns: 1fr; gap: 1rem; }
+  .zahlen { grid-template-columns: 1fr; gap: 1.4rem; }
+  .beat-pv, .beat-smart, .beat-klima { justify-content: center; }
+  .beat-card { max-width: 100%; }
 }
 
 @media (max-width: 640px) {
