@@ -16,10 +16,9 @@ const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true 
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
 const scene = new THREE.Scene();
+scene.fog = new THREE.Fog(0x0b0d10, 8, 22);
 
 const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100);
-camera.position.set(4.6, 2.6, 6.4);
-camera.lookAt(0, 1.1, 0);
 
 // Dark studio lighting with a warm copper key — no bloom pass, glow comes from emissive materials
 scene.add(new THREE.AmbientLight(0x2a3038, 1.3));
@@ -144,17 +143,16 @@ const shadow = new THREE.Mesh(
 );
 shadow.rotation.x = -Math.PI / 2;
 shadow.position.y = 0.001;
-scene.add(shadow);
+house.add(shadow);
 
-// ---------- Scroll-coupled rotation ----------
-// House turns ~120° total over the full page scroll — no camera moves.
+// ---------- Scroll-coupled + idle rotation ----------
+// Scroll contributes ~120° across the page; a slow constant idle spin keeps
+// the background alive even when the visitor isn't scrolling.
 
-const state = { rotY: -0.35 };
-gsap.set(house.rotation, { y: state.rotY });
-
+const rot = { scroll: -0.35 };
 if (!reducedMotion) {
-  gsap.to(house.rotation, {
-    y: state.rotY + Math.PI * (120 / 180),
+  gsap.to(rot, {
+    scroll: rot.scroll + Math.PI * (120 / 180),
     ease: "none",
     scrollTrigger: {
       trigger: document.body,
@@ -165,30 +163,48 @@ if (!reducedMotion) {
   });
 }
 
+// ---------- Layout: house/camera framing adapts to full-viewport aspect ----------
+
+const baseY = 1.1;
+
+function layout() {
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  const narrow = w < 800;
+
+  // Camera stays put; only the house shifts, so a bigger offset actually
+  // moves it further across the frame instead of just riding along with the camera.
+  const offsetX = narrow ? 0 : Math.min(w * 0.007, 7.5);
+
+  house.position.x = offsetX;
+  house.scale.setScalar(narrow ? 0.55 : 0.62);
+
+  camera.aspect = w / h;
+  camera.position.set(6.4, 3.2, 11.5);
+  camera.lookAt(1.6, baseY, 0);
+  camera.updateProjectionMatrix();
+
+  renderer.setSize(w, h, false);
+}
+
 // ---------- Render loop ----------
 
 const clock = new THREE.Clock();
 
-function resize() {
-  const rect = canvas.getBoundingClientRect();
-  const w = Math.max(rect.width, 1);
-  const h = Math.max(rect.height, 1);
-  renderer.setSize(w, h, false);
-  camera.aspect = w / h;
-  camera.updateProjectionMatrix();
-}
-
 function render() {
   const t = clock.getElapsedTime();
-  const idle = reducedMotion ? 0 : Math.sin(t * 0.6) * 0.02;
-  house.position.y = idle;
+  const idleSpin = reducedMotion ? 0 : t * 0.05;
+  const idleBob = reducedMotion ? 0 : Math.sin(t * 0.6) * 0.02;
+
+  house.rotation.y = rot.scroll + idleSpin;
+  house.position.y = idleBob;
 
   renderer.render(scene, camera);
   requestAnimationFrame(render);
 }
 
-window.addEventListener("resize", resize);
-resize();
+window.addEventListener("resize", layout);
+layout();
 render();
 
 requestAnimationFrame(() => {

@@ -133,15 +133,17 @@ a { color: inherit; }
 /* ---------- Hero ---------- */
 
 .hero {
+  position: relative;
+  z-index: 1;
   max-width: var(--max);
   margin: 0 auto;
   padding: 4.5rem 6vw 3rem;
-  display: grid;
-  grid-template-columns: 1.1fr 1fr;
-  gap: 2rem;
+  display: flex;
   align-items: center;
   min-height: 82vh;
 }
+
+.hero-text { max-width: 34rem; }
 
 .lead {
   margin-top: 1.6rem;
@@ -221,31 +223,29 @@ a { color: inherit; }
   transform: scale(1);
 }
 
-.hero-scene {
-  position: relative;
-  aspect-ratio: 1 / 1;
-  border: 1px solid var(--line);
-  border-radius: 4px;
-}
-
-.hero-scene::before {
-  content: "";
-  position: absolute;
+#scene {
+  position: fixed;
   inset: 0;
-  background-image:
-    linear-gradient(var(--line) 1px, transparent 1px),
-    linear-gradient(90deg, var(--line) 1px, transparent 1px);
-  background-size: 24px 24px;
-  opacity: 0.35;
-  pointer-events: none;
+  width: 100vw;
+  height: 100vh;
+  z-index: 0;
+  display: block;
+  opacity: 0;
+  transition: opacity 1.2s ease;
 }
-
-#scene { position: absolute; inset: 0; width: 100%; height: 100%; display: block; opacity: 0; transition: opacity 1s ease; }
 #scene.ready { opacity: 1; }
 
 /* ---------- Leistungen: Flip-Cards ---------- */
 
-.leistungen { max-width: var(--max); margin: 0 auto; padding: 5rem 6vw 2rem; }
+.leistungen {
+  position: relative;
+  z-index: 1;
+  max-width: var(--max);
+  margin: 0 auto;
+  padding: 5rem 6vw 2rem;
+  background: rgba(11, 13, 16, 0.7);
+  backdrop-filter: blur(3px);
+}
 
 .leistungen-list {
   display: grid;
@@ -350,6 +350,8 @@ a { color: inherit; }
 /* ---------- Zahlen ---------- */
 
 .zahlen {
+  position: relative;
+  z-index: 1;
   max-width: var(--max);
   margin: 0 auto;
   padding: 4rem 6vw;
@@ -358,6 +360,8 @@ a { color: inherit; }
   gap: 2rem;
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
+  background: rgba(11, 13, 16, 0.7);
+  backdrop-filter: blur(3px);
 }
 
 .zahl { text-align: center; }
@@ -384,7 +388,15 @@ a { color: inherit; }
 
 /* ---------- Ablauf ---------- */
 
-.ablauf { max-width: var(--max); margin: 0 auto; padding: 5rem 6vw; }
+.ablauf {
+  position: relative;
+  z-index: 1;
+  max-width: var(--max);
+  margin: 0 auto;
+  padding: 5rem 6vw;
+  background: rgba(11, 13, 16, 0.7);
+  backdrop-filter: blur(3px);
+}
 
 .ablauf-steps {
   list-style: none;
@@ -406,7 +418,16 @@ a { color: inherit; }
 
 /* ---------- Region ---------- */
 
-.region { max-width: var(--max); margin: 0 auto; padding: 5rem 6vw; border-top: 1px solid var(--line); }
+.region {
+  position: relative;
+  z-index: 1;
+  max-width: var(--max);
+  margin: 0 auto;
+  padding: 5rem 6vw;
+  border-top: 1px solid var(--line);
+  background: rgba(11, 13, 16, 0.7);
+  backdrop-filter: blur(3px);
+}
 
 .lead-small { font-size: 1.02rem; line-height: 1.65; color: var(--text-dim); max-width: 40rem; }
 
@@ -434,11 +455,15 @@ a { color: inherit; }
 /* ---------- Kontakt ---------- */
 
 .kontakt {
+  position: relative;
+  z-index: 1;
   max-width: var(--max);
   margin: 0 auto;
   padding: 6rem 6vw;
   text-align: center;
   border-top: 1px solid var(--line);
+  background: rgba(11, 13, 16, 0.7);
+  backdrop-filter: blur(3px);
 }
 
 .kontakt .eyebrow, .kontakt .display-lg, .kontakt .lead-small { margin-left: auto; margin-right: auto; }
@@ -463,9 +488,13 @@ a { color: inherit; }
 /* ---------- Footer ---------- */
 
 .site-footer {
+  position: relative;
+  z-index: 1;
   max-width: var(--max);
   margin: 0 auto;
   padding: 2rem 6vw 3rem;
+  background: rgba(11, 13, 16, 0.7);
+  backdrop-filter: blur(3px);
   display: flex;
   justify-content: space-between;
   flex-wrap: wrap;
@@ -490,8 +519,7 @@ a:focus-visible, button:focus-visible {
 /* ---------- Responsive ---------- */
 
 @media (max-width: 900px) {
-  .hero { grid-template-columns: 1fr; min-height: auto; padding-top: 3rem; }
-  .hero-scene { order: -1; aspect-ratio: 4 / 3; }
+  .hero { min-height: auto; padding-top: 3rem; }
   .site-nav { display: none; }
   .ablauf-steps { grid-template-columns: 1fr; gap: 2rem; }
   .zahlen { grid-template-columns: 1fr; gap: 2.2rem; }
