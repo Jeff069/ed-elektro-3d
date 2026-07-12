@@ -3,6 +3,7 @@
 // No camera fly-through, no bloom, no particles — a calm, still object.
 
 import * as THREE from "three";
+import anime from "animejs";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -20,32 +21,32 @@ const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100);
 camera.position.set(4.6, 2.6, 6.4);
 camera.lookAt(0, 1.1, 0);
 
-// Soft, flat lighting — paper tones, no glow
-scene.add(new THREE.AmbientLight(0xffffff, 1.4));
-const key = new THREE.DirectionalLight(0xffffff, 0.9);
+// Dark studio lighting with a warm copper key — no bloom pass, glow comes from emissive materials
+scene.add(new THREE.AmbientLight(0x2a3038, 1.3));
+const key = new THREE.DirectionalLight(0xd97a3f, 0.9);
 key.position.set(5, 8, 4);
 scene.add(key);
-const fill = new THREE.DirectionalLight(0xdfe6ea, 0.4);
+const fill = new THREE.DirectionalLight(0x5fa8bd, 0.35);
 fill.position.set(-5, 3, -3);
 scene.add(fill);
 
 // ---------- Materials ----------
 
 const matWall = new THREE.MeshStandardMaterial({
-  color: 0xece9e2, roughness: 0.95, metalness: 0.02,
+  color: 0x1b2126, roughness: 0.85, metalness: 0.15,
 });
-const matEdge = new THREE.LineBasicMaterial({ color: 0x14181c, transparent: true, opacity: 0.65 });
+const matEdge = new THREE.LineBasicMaterial({ color: 0x3a4148, transparent: true, opacity: 0.8 });
 const matKupfer = new THREE.MeshStandardMaterial({
-  color: 0xb4551f, roughness: 0.5, metalness: 0.4,
+  color: 0xd97a3f, emissive: 0xd97a3f, emissiveIntensity: 0.55, roughness: 0.4, metalness: 0.5,
 });
 const matClimate = new THREE.MeshStandardMaterial({
-  color: 0x41798a, roughness: 0.5, metalness: 0.3,
+  color: 0x5fa8bd, emissive: 0x5fa8bd, emissiveIntensity: 0.3, roughness: 0.4, metalness: 0.4,
 });
 const matPanel = new THREE.MeshStandardMaterial({
-  color: 0x3a3f44, roughness: 0.4, metalness: 0.3,
+  color: 0x14181c, roughness: 0.3, metalness: 0.6,
 });
 const matWindow = new THREE.MeshStandardMaterial({
-  color: 0xdad6cd, roughness: 0.3, metalness: 0.1,
+  color: 0x262b30, emissive: 0xd97a3f, emissiveIntensity: 0.04, roughness: 0.3, metalness: 0.2,
 });
 
 function withEdges(geo, mat) {
@@ -136,10 +137,10 @@ house.add(dbox);
 
 scene.add(house);
 
-// Fake soft shadow — a flat dark ellipse beneath the house
+// Soft copper glow pooling beneath the house — reads as ambient occlusion on dark
 const shadow = new THREE.Mesh(
   new THREE.CircleGeometry(2.6, 48),
-  new THREE.MeshBasicMaterial({ color: 0x14181c, transparent: true, opacity: 0.06 })
+  new THREE.MeshBasicMaterial({ color: 0xd97a3f, transparent: true, opacity: 0.05 })
 );
 shadow.rotation.x = -Math.PI / 2;
 shadow.position.y = 0.001;
@@ -206,6 +207,36 @@ if (!reducedMotion) {
       duration: 0.7,
       ease: "power2.out",
       scrollTrigger: { trigger: el, start: "top 85%" },
+    });
+  });
+}
+
+// ---------- Anime.js: tactile button press + touch flip-cards ----------
+
+document.querySelectorAll(".btn, .cta-tel, .header-cta").forEach((btn) => {
+  btn.addEventListener("pointerdown", () => {
+    anime({ targets: btn, scale: 0.96, duration: 120, easing: "easeOutQuad" });
+  });
+  btn.addEventListener("pointerup", () => {
+    anime({ targets: btn, scale: 1, duration: 260, easing: "easeOutElastic(1, 0.5)" });
+  });
+  btn.addEventListener("pointerleave", () => {
+    anime({ targets: btn, scale: 1, duration: 260, easing: "easeOutElastic(1, 0.5)" });
+  });
+});
+
+// Touch devices don't have hover — tap toggles the flip state with a spring bounce
+const isTouch = window.matchMedia("(hover: none)").matches;
+if (isTouch) {
+  document.querySelectorAll(".leistung-flip").forEach((card) => {
+    card.addEventListener("click", () => {
+      card.classList.toggle("flipped");
+      anime({
+        targets: card.querySelector(".leistung-card"),
+        scale: [1, 1.03, 1],
+        duration: 500,
+        easing: "easeOutElastic(1, 0.6)",
+      });
     });
   });
 }
