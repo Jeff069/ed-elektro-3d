@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import Scene from "../components/Scene";
+import ImageBackdrop from "../components/ImageBackdrop";
 import Header from "../components/Header";
 import Hero from "../components/Hero";
 import Story from "../components/Story";
@@ -23,7 +23,7 @@ export default function Home() {
 
   return (
     <>
-      <Scene />
+      <ImageBackdrop />
       <Header />
       <main>
         <Hero />

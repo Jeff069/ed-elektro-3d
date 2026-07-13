@@ -255,6 +255,23 @@ a { color: inherit; }
 .scene-layer.ready { opacity: 1; }
 .scene-layer.scene-exit { opacity: 0; }
 
+.bg-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+/* Dark scrim over the photos so glass-card text keeps enough contrast */
+.scene-scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(11, 13, 16, 0.55) 0%, rgba(11, 13, 16, 0.7) 55%, rgba(11, 13, 16, 0.92) 100%);
+  pointer-events: none;
+}
+
 /* ---------- Story: scrollytelling camera beats ---------- */
 
 .story { position: relative; z-index: 1; }
