@@ -24,9 +24,12 @@ export function CAM_HERO() {
 
 export function CAM_PV(houseX) {
   // Beat 1 — Photovoltaik: swoop up and in toward the flat roof (top at y≈2.44),
-  // looking down at the panel array. Pulled back/up from center so the wider
-  // two-volume massing doesn't creep under the text card.
-  return { pos: [houseX + 1.4, 6.2, 6.6], look: [houseX + 0.1, 2.2, -0.6] };
+  // looking down at the panel array. The beat-pv text card is right-anchored
+  // (see .beat-pv { justify-content: flex-end } in style.css), so the camera
+  // is pulled back and slightly left of the look target — smaller on-screen
+  // footprint, weighted toward the left/center — instead of pushed right,
+  // which would drive the roof straight into the card.
+  return { pos: [houseX - 4.2, 8.4, 13.5], look: [houseX - 0.8, 2.0, -0.6] };
 }
 
 export function CAM_SMART(houseX) {
@@ -87,18 +90,25 @@ export function setupChoreography(state, canvasWrapperEl) {
         scrub: true,
         onUpdate(self) {
           const p = self.progress; // 0 → 1 across all three beats
-          const seg = 1 / 3;
           const houseX = state.houseX;
           let a, b, t, ra, rb;
 
-          if (p < seg) {
-            a = CAM_HERO(); b = CAM_PV(houseX); t = p / seg;
+          // Breakpoints are NOT uniform thirds: each beat's text card is
+          // centered near the middle of its own 1/3 of scroll range (pv≈0.17,
+          // smart≈0.5, klima≈0.83), so the camera should already be fully in
+          // that beat's state by the time the reader reaches it — not still
+          // halfway blended from the previous one. HERO→PV resolves fast
+          // (by p=0.12) since the pv card appears early in its section;
+          // PV→SMART then has a long hold/transition ending right at smart's
+          // center (p=0.5); SMART→KLIMA eases in gradually toward the end.
+          if (p < 0.12) {
+            a = CAM_HERO(); b = CAM_PV(houseX); t = p / 0.12;
             ra = ROT_HERO; rb = ROT_PV;
-          } else if (p < seg * 2) {
-            a = CAM_PV(houseX); b = CAM_SMART(houseX); t = (p - seg) / seg;
+          } else if (p < 0.5) {
+            a = CAM_PV(houseX); b = CAM_SMART(houseX); t = (p - 0.12) / 0.38;
             ra = ROT_PV; rb = ROT_SMART;
           } else {
-            a = CAM_SMART(houseX); b = CAM_KLIMA(houseX); t = (p - seg * 2) / seg;
+            a = CAM_SMART(houseX); b = CAM_KLIMA(houseX); t = (p - 0.5) / 0.5;
             ra = ROT_SMART; rb = ROT_KLIMA;
           }
 
