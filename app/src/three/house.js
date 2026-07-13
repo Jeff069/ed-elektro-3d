@@ -1,6 +1,10 @@
-// Procedural house geometry + PBR materials — ported 1:1 from the vanilla
-// Three.js build (main.js). Builds one THREE.Group; consumed by Scene.jsx
-// via <primitive object={house} />.
+// House geometry + PBR materials. No suitable free-licensed .glb modern-house
+// model was found (Poly Haven has no complete buildings, only props/facade
+// fragments; three.js's official example models have no fitting house; Sketchfab
+// downloads require OAuth not available here) — see AGENTIC_NOTES in the PR/commit
+// for the search trail. Upgraded procedural massing instead: two volumes, flat
+// cantilevered roof, articulated vertical facade fins, full glazing band —
+// reads as real architecture instead of a single low-poly box+gable.
 import * as THREE from "three";
 
 // Procedural PV grid texture — fine cell lines + metallic frame look without an asset file.
@@ -65,59 +69,73 @@ export function buildHouse() {
   }
 
   const house = new THREE.Group();
+  const facadeMeshes = []; // collected for x-ray fade (main volumes only, not fins/trim details)
 
-  const base = withEdges(new THREE.BoxGeometry(4, 2.4, 3), matFacade);
-  base.position.y = 1.2;
-  base.castShadow = true;
-  base.receiveShadow = true;
-  house.add(base);
+  // ---------- Volume A: main living block ----------
+  const volA = withEdges(new THREE.BoxGeometry(5.0, 2.3, 3.0), matFacade);
+  volA.position.set(-0.3, 1.15, 0);
+  volA.castShadow = true;
+  volA.receiveShadow = true;
+  house.add(volA);
+  facadeMeshes.push(volA);
 
-  const roofShape = new THREE.Shape();
-  roofShape.moveTo(-2.15, 0);
-  roofShape.lineTo(0, 1.3);
-  roofShape.lineTo(2.15, 0);
-  roofShape.lineTo(-2.15, 0);
-  const roofGeo = new THREE.ExtrudeGeometry(roofShape, { depth: 3.2, bevelEnabled: false });
-  const roof = withEdges(roofGeo, matTrim);
-  roof.position.set(0, 2.4, -1.6);
-  roof.castShadow = true;
-  house.add(roof);
+  // Flat cantilevered roof slab — overhangs the walls, the single biggest
+  // "reads as architecture" move vs. a gabled box.
+  const roofA = withEdges(new THREE.BoxGeometry(5.6, 0.14, 3.6), matTrim);
+  roofA.position.set(-0.3, 2.37, 0);
+  roofA.castShadow = true;
+  house.add(roofA);
 
-  // PV panels on the south roof slope
-  const nx = -1.3 / 2.513, ny = 2.15 / 2.513;
-  const slopeAngle = Math.atan2(1.3, 2.15);
-  const panelGeo = new THREE.BoxGeometry(0.62, 0.02, 0.68);
-  for (const u of [0.28, 0.64]) {
+  // ---------- Volume B: taller side volume (stairwell/study) for massing ----------
+  const volB = withEdges(new THREE.BoxGeometry(1.7, 3.1, 1.9), matFacade);
+  volB.position.set(2.55, 1.55, -0.35);
+  volB.castShadow = true;
+  volB.receiveShadow = true;
+  house.add(volB);
+  facadeMeshes.push(volB);
+
+  const roofB = withEdges(new THREE.BoxGeometry(2.0, 0.12, 2.2), matTrim);
+  roofB.position.set(2.55, 3.16, -0.35);
+  roofB.castShadow = true;
+  house.add(roofB);
+
+  // ---------- Glazing: full-width front band instead of punched windows ----------
+  const glassA = new THREE.Mesh(new THREE.PlaneGeometry(4.4, 1.7), matGlass);
+  glassA.position.set(-0.3, 1.2, 1.51);
+  house.add(glassA);
+
+  const glassB = new THREE.Mesh(new THREE.PlaneGeometry(1.3, 2.6), matGlass);
+  glassB.position.set(2.55, 1.55, 0.61);
+  house.add(glassB);
+
+  // Side glazing on volume A
+  const glassSide = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 1.4), matGlass);
+  glassSide.position.set(-2.81, 1.2, 0);
+  glassSide.rotation.y = Math.PI / 2;
+  house.add(glassSide);
+
+  // ---------- Vertical facade fins (Sichtbeton/Metall-Mix, moderner Sonnenschutz) ----------
+  const finGeo = new THREE.BoxGeometry(0.06, 1.75, 0.14);
+  for (let i = 0; i < 7; i++) {
+    const fin = new THREE.Mesh(finGeo, matTrim);
+    fin.position.set(-2.35 + i * 0.75, 1.2, 1.58);
+    fin.castShadow = true;
+    house.add(fin);
+  }
+
+  // ---------- PV panels on the flat roof, slightly tilted toward the camera ----------
+  const panelGeo = new THREE.BoxGeometry(0.7, 0.03, 0.9);
+  for (let row = 0; row < 2; row++) {
     for (let col = 0; col < 4; col++) {
       const p = new THREE.Mesh(panelGeo, matPanel);
-      p.position.set(
-        -2.15 + 2.15 * u + nx * 0.05,
-        2.4 + 1.3 * u + ny * 0.05,
-        -1.2 + col * 0.8
-      );
-      p.rotation.z = slopeAngle;
+      p.position.set(-2.1 + col * 0.95, 2.48 + row * 0.09, -1.0 + row * 1.0);
+      p.rotation.x = -0.12;
+      p.castShadow = true;
       house.add(p);
     }
   }
 
-  // Windows
-  const winGeo = new THREE.PlaneGeometry(0.55, 0.7);
-  const winPositions = [
-    [-1.2, 1.3, 1.51], [-0.3, 1.3, 1.51], [0.6, 1.3, 1.51], [1.4, 1.3, 1.51],
-  ];
-  for (const [x, y, z] of winPositions) {
-    const w = new THREE.Mesh(winGeo, matGlass);
-    w.position.set(x, y, z);
-    house.add(w);
-  }
-  for (const z of [-0.7, 0.5]) {
-    const w = new THREE.Mesh(winGeo, matGlass);
-    w.position.set(2.01, 1.3, z);
-    w.rotation.y = Math.PI / 2;
-    house.add(w);
-  }
-
-  // Outdoor climate unit (Wärmepumpe / AC) — the Klima beat focuses here
+  // ---------- Outdoor climate unit (Wärmepumpe / AC) — the Klima beat focuses here ----------
   const acUnit = new THREE.Group();
   const acBody = withEdges(new THREE.BoxGeometry(0.9, 0.6, 0.35), matTrim);
   acBody.castShadow = true;
@@ -125,18 +143,18 @@ export function buildHouse() {
   const fanRing = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.03, 10, 40), matClimate);
   fanRing.position.z = 0.18;
   acUnit.add(fanRing);
-  acUnit.position.set(2.5, 0.35, 0.9);
-  acUnit.rotation.y = Math.PI / 2;
+  acUnit.position.set(3.35, 0.35, -1.15);
+  acUnit.rotation.y = Math.PI * 0.15;
   house.add(acUnit);
 
-  // KNX bus line — the copper "nervous system" of the building
+  // ---------- KNX bus line — the copper "nervous system", routed along both volumes ----------
   const busPoints = [
-    new THREE.Vector3(-1.8, 0.15, 1.4),
-    new THREE.Vector3(-1.8, 2.2, 1.4),
-    new THREE.Vector3(1.8, 2.2, 1.4),
-    new THREE.Vector3(1.8, 0.4, 1.4),
-    new THREE.Vector3(1.8, 0.4, -1.3),
-    new THREE.Vector3(-1.6, 0.4, -1.3),
+    new THREE.Vector3(-2.7, 0.15, 1.35),
+    new THREE.Vector3(-2.7, 2.15, 1.35),
+    new THREE.Vector3(1.9, 2.15, 1.35),
+    new THREE.Vector3(1.9, 0.4, 1.35),
+    new THREE.Vector3(2.9, 0.4, 0.5),
+    new THREE.Vector3(2.9, 0.4, -1.0),
   ];
   const busCurve = new THREE.CatmullRomCurve3(busPoints);
   const busTube = new THREE.Mesh(new THREE.TubeGeometry(busCurve, 80, 0.018, 8), matKupfer);
@@ -153,25 +171,25 @@ export function buildHouse() {
 
   // Distribution box (Zählerschrank)
   const dbox = withEdges(new THREE.BoxGeometry(0.5, 0.7, 0.12), matTrim);
-  dbox.position.set(-1.8, 0.5, 1.45);
+  dbox.position.set(-2.7, 0.5, 1.4);
   house.add(dbox);
 
   // Soft copper glow pooling beneath the house — reads as ambient occlusion on dark
   const glow = new THREE.Mesh(
-    new THREE.CircleGeometry(2.6, 48),
+    new THREE.CircleGeometry(3.4, 48),
     new THREE.MeshBasicMaterial({ color: 0xd97a3f, transparent: true, opacity: 0.05 })
   );
   glow.rotation.x = -Math.PI / 2;
-  glow.position.y = 0.001;
+  glow.position.set(0.3, 0.001, 0);
   house.add(glow);
 
   // Real contact shadow catcher — renders only the shadow cast by the key light.
   const shadowCatcher = new THREE.Mesh(
-    new THREE.CircleGeometry(6, 48),
+    new THREE.CircleGeometry(7, 48),
     new THREE.ShadowMaterial({ opacity: 0.4 })
   );
   shadowCatcher.rotation.x = -Math.PI / 2;
-  shadowCatcher.position.y = 0.0005;
+  shadowCatcher.position.set(0.3, 0.0005, 0);
   shadowCatcher.receiveShadow = true;
   house.add(shadowCatcher);
 

@@ -23,8 +23,10 @@ export function CAM_HERO() {
 }
 
 export function CAM_PV(houseX) {
-  // Beat 1 — Photovoltaik: swoop up and in toward the roof, looking down at the panels.
-  return { pos: [houseX + 3.0, 5.4, 4.6], look: [houseX + 0.4, 2.6, -0.8] };
+  // Beat 1 — Photovoltaik: swoop up and in toward the flat roof (top at y≈2.44),
+  // looking down at the panel array. Pulled back/up from center so the wider
+  // two-volume massing doesn't creep under the text card.
+  return { pos: [houseX + 1.4, 6.2, 6.6], look: [houseX + 0.1, 2.2, -0.6] };
 }
 
 export function CAM_SMART(houseX) {
@@ -34,8 +36,8 @@ export function CAM_SMART(houseX) {
 }
 
 export function CAM_KLIMA(houseX) {
-  // Beat 3 — Klima/Sanitär: low angle, focused on the outdoor unit at (2.5, 0.35, 0.9).
-  return { pos: [houseX + 6.8, 1.7, 5.2], look: [houseX + 1.8, 0.5, 0.9] };
+  // Beat 3 — Klima/Sanitär: low angle, focused on the outdoor unit at (3.35, 0.35, -1.15).
+  return { pos: [houseX + 6.4, 1.5, 2.2], look: [houseX + 2.9, 0.5, -1.0] };
 }
 
 // ---------- ROTATION STATES ----------
